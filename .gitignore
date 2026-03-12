@@ -1,0 +1,15 @@
+__pycache__/
+.venv/
+.idea/
+.vscode/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+*.log
+
+data/raw/
+data/processed/
+
+.DS_Store
+
