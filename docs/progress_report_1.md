@@ -1,5 +1,7 @@
 # Progress Report 1 — PolarScope
 
+**GitHub:** [https://github.com/anandms101/polarScope](https://github.com/anandms101/polarScope)
+
 ## What have you already achieved?
 
 So far we have implemented a minimal but working end‑to‑end version of PolarScope that goes from raw text reviews to a web‑based visualization of movie polarization. On the modeling side, we built a TF–IDF + logistic regression sentiment classifier and wrapped it as a reusable pipeline that can be trained on the Kaggle IMDb 50K dataset. The pipeline currently supports training, evaluation, and serialization via `joblib`, so we can easily retrain on larger or cleaner data later.

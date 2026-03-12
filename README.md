@@ -1,5 +1,7 @@
 # PolarScope
 
+**Repository:** [https://github.com/anandms101/polarScope](https://github.com/anandms101/polarScope)
+
 PolarScope is a small research prototype that identifies **polarizing movies** from IMDb-style reviews and exposes them through a simple **Streamlit web app**. It combines a TF–IDF + logistic regression sentiment classifier with several polarization metrics to distinguish consensus films (universally liked) from divisive ones (strong love / hate split).
 
 ## Features (first milestone)
