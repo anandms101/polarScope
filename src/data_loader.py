@@ -140,10 +140,18 @@ def load_kaggle_grouped_by_ratings(
     Returns a DataFrame with columns: movie_id, rating, review.
     """
     dataset_dir = Path(dataset_dir)
-    if not dataset_dir.exists():
+    if not dataset_dir.exists() or not list(dataset_dir.glob("reviews_rating_*.csv")):
         raise FileNotFoundError(
-            f"Kaggle dataset not found at {dataset_dir}. "
-            "Run: python scripts/download_kaggle_dataset.py --dataset mlopssss/imdb-movie-reviews-grouped-by-ratings"
+            f"Dataset not found at {dataset_dir}.\n\n"
+            "To set up the data:\n"
+            "  1. Go to https://www.kaggle.com/datasets/mlopssss/imdb-movie-reviews-grouped-by-ratings\n"
+            "  2. Click 'Download' (free Kaggle account required) to get the zip file.\n"
+            "  3. Unzip and place the CSV files so they live at:\n"
+            f"       {dataset_dir}/reviews_rating_1.csv\n"
+            f"       {dataset_dir}/reviews_rating_2.csv\n"
+            "       ... (one per rating, 1-10)\n\n"
+            "  Or, if you have the Kaggle CLI configured:\n"
+            "       python scripts/download_kaggle_dataset.py\n"
         )
 
     files = sorted(dataset_dir.glob("reviews_rating_*.csv"))
