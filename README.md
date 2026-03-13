@@ -48,6 +48,38 @@ If you have the [Kaggle CLI](https://www.kaggle.com/docs/api) configured (`~/.ka
 python scripts/download_kaggle_dataset.py
 ```
 
+## Screenshots
+
+### Home — dashboard overview and score distribution
+
+![Home page — metrics and histogram](src/public/homePage1.png)
+
+![Home page — top polarizing vs consensus tables](src/public/homePage2.png)
+
+### Movie Explorer — per-movie deep dive
+
+![Movie Explorer — sentiment distribution and polarization radar](src/public/movieExplorer1.png)
+
+![Movie Explorer — NMF topics, controversial topics, and sample reviews](src/public/movieExplorer2.png)
+
+### Recommendations
+
+![Recommendations — safe pick and debate night modes](src/public/recommendation.png)
+
+### Metrics Comparison
+
+![Metrics Comparison — composite vs variance baseline scatter](src/public/metricComparison.png)
+
+### Case Studies
+
+![Case Studies — polarizing vs consensus with topic explanations](src/public/caseStudies.png)
+
+### Evaluation
+
+![Evaluation — Spearman correlations and bootstrap Kendall tau](src/public/evalution1.png)
+
+![Evaluation — Kendall tau distribution histogram](src/public/evalution2.png)
+
 ## Features
 
 - **Sentiment analysis** — TF-IDF (unigram + bigram) pipeline with logistic regression trained on real IMDb data.
