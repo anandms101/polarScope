@@ -3,13 +3,14 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, List, Tuple
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
 
 DATA_RAW_DIR = Path("data/raw")
+KAGGLE_RAW_DIR = DATA_RAW_DIR / "kaggle"
 
 
 def _strip_html(text: str) -> str:
@@ -118,6 +119,119 @@ def load_movie_reviews(
     )
     grouped = {k: v for k, v in grouped.items() if len(v) >= min_reviews_per_movie}
     return grouped
+
+
+def load_kaggle_grouped_by_ratings(
+    dataset_dir: str | Path = KAGGLE_RAW_DIR / "mlopssss__imdb-movie-reviews-grouped-by-ratings",
+    *,
+    min_reviews_per_movie: int = 5,
+    max_movies: int | None = None,
+    max_reviews_per_movie: int | None = 200,
+    random_state: int = 42,
+) -> pd.DataFrame:
+    """
+    Loads the Kaggle dataset `mlopssss/imdb-movie-reviews-grouped-by-ratings`.
+
+    The dataset ships multiple CSV files like `reviews_rating_7.csv` with columns:
+    - MovieID (IMDb title id, e.g. tt1234567)
+    - Rating  (1-10 integer)
+    - Review  (text)
+
+    Returns a DataFrame with columns: movie_id, rating, review.
+    """
+    dataset_dir = Path(dataset_dir)
+    if not dataset_dir.exists():
+        raise FileNotFoundError(
+            f"Kaggle dataset not found at {dataset_dir}. "
+            "Run: python scripts/download_kaggle_dataset.py --dataset mlopssss/imdb-movie-reviews-grouped-by-ratings"
+        )
+
+    files = sorted(dataset_dir.glob("reviews_rating_*.csv"))
+    if not files:
+        raise FileNotFoundError(f"No reviews_rating_*.csv files found in {dataset_dir}")
+
+    frames: List[pd.DataFrame] = []
+    for fp in files:
+        df = pd.read_csv(fp)
+        expected = {"MovieID", "Rating", "Review"}
+        if not expected.issubset(set(df.columns)):
+            raise ValueError(f"Unexpected columns in {fp.name}: {list(df.columns)}")
+        frames.append(df[list(expected)])
+
+    all_df = pd.concat(frames, ignore_index=True)
+    all_df = all_df.dropna()
+    all_df["MovieID"] = all_df["MovieID"].astype(str).str.strip()
+    all_df["Rating"] = pd.to_numeric(all_df["Rating"], errors="coerce").astype("Int64")
+    all_df["Review"] = all_df["Review"].astype(str).map(_basic_normalize)
+    all_df = all_df.dropna(subset=["MovieID", "Rating", "Review"])
+
+    # Filter by minimum review count per movie.
+    counts = all_df["MovieID"].value_counts()
+    keep_ids = counts[counts >= min_reviews_per_movie].index
+    all_df = all_df[all_df["MovieID"].isin(keep_ids)].copy()
+
+    # Optionally subsample movies and/or reviews per movie for a medium-scale run.
+    if max_movies is not None:
+        movie_ids = all_df["MovieID"].drop_duplicates().sample(
+            n=min(max_movies, all_df["MovieID"].nunique()),
+            random_state=random_state,
+        )
+        all_df = all_df[all_df["MovieID"].isin(movie_ids)].copy()
+
+    if max_reviews_per_movie is not None:
+        # Avoid groupby.apply FutureWarning by sampling within each group explicitly.
+        sampled_frames: List[pd.DataFrame] = []
+        for _, g in all_df.groupby("MovieID", sort=False):
+            sampled_frames.append(
+                g.sample(n=min(len(g), max_reviews_per_movie), random_state=random_state)
+            )
+        all_df = pd.concat(sampled_frames, ignore_index=True)
+
+    out = all_df.rename(columns={"MovieID": "movie_id", "Rating": "rating", "Review": "review"})
+    out["rating"] = out["rating"].astype(int)
+    return out[["movie_id", "rating", "review"]].reset_index(drop=True)
+
+
+def build_weak_sentiment_labels_from_ratings(
+    df: pd.DataFrame,
+    *,
+    neg_max: int = 4,
+    pos_min: int = 7,
+) -> SentimentDataset:
+    """
+    Creates a labeled sentiment dataset using rating thresholds:
+    - rating <= neg_max => negative (0)
+    - rating >= pos_min => positive (1)
+    - otherwise dropped
+    """
+    if not {"rating", "review"}.issubset(df.columns):
+        raise ValueError("Expected columns: rating, review")
+
+    sub = df[["rating", "review"]].dropna().copy()
+    sub["rating"] = pd.to_numeric(sub["rating"], errors="coerce")
+    sub = sub.dropna()
+    sub["rating"] = sub["rating"].astype(int)
+
+    neg = sub[sub["rating"] <= neg_max].copy()
+    pos = sub[sub["rating"] >= pos_min].copy()
+    neg["y"] = 0
+    pos["y"] = 1
+    lab = pd.concat([neg, pos], ignore_index=True)
+    if lab.empty:
+        raise RuntimeError("No weak labels produced from rating thresholds.")
+
+    X = lab["review"].astype(str).tolist()
+    y = lab["y"].astype(int).tolist()
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
+    return SentimentDataset(
+        X_train=list(X_train),
+        X_test=list(X_test),
+        y_train=list(y_train),
+        y_test=list(y_test),
+    )
 
 
 def demo_movie_reviews() -> Dict[str, List[str]]:

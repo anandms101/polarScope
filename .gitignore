@@ -1,15 +1,26 @@
 __pycache__/
-.venv/
-.idea/
-.vscode/
 *.pyc
 *.pyo
 *.pyd
+
+.venv/
+.env
+.idea/
+.vscode/
+.cursor/
+
 *.pkl
 *.log
+*.egg-info/
 
 data/raw/
 data/processed/
 
 .DS_Store
+Thumbs.db
 
+*.ipynb_checkpoints/
+gradingCriteria.txt
+polarScopeLiteratureReview (1).pdf
+progressReport1Instructions.txt
+Project_proposal.pdf
