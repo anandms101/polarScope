@@ -113,7 +113,8 @@ polarScope/
 ├── scripts/
 │   └── download_kaggle_dataset.py
 └── docs/
-    └── progress_report_1.md / .pdf
+    ├── progress_report_1.md / .pdf
+    └── final_progress_report.md / .pdf
 ```
 
 ## What `python train.py` produces
