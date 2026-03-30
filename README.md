@@ -2,64 +2,138 @@
 
 **Repository:** [https://github.com/anandms101/polarScope](https://github.com/anandms101/polarScope)
 
-PolarScope is a small research prototype that identifies **polarizing movies** from IMDb-style reviews and exposes them through a simple **Streamlit web app**. It combines a TF–IDF + logistic regression sentiment classifier with several polarization metrics to distinguish consensus films (universally liked) from divisive ones (strong love / hate split).
+PolarScope is an AI-powered research prototype that identifies **polarizing movies** from real IMDb reviews and explains *why* audiences disagree. It pairs a TF-IDF + logistic-regression sentiment classifier with three complementary polarization metrics (bimodality coefficient, Shannon entropy, confidence-adjusted disagreement) and NMF topic extraction, all surfaced through an interactive **Streamlit** dashboard.
 
-## Features (first milestone)
-
-- Train a binary sentiment classifier on the 50K IMDb movie reviews dataset.
-- Aggregate review sentiments per movie and compute multiple polarization metrics (bimodality, entropy, confidence‑adjusted disagreement, variance baseline).
-- Rank movies for two recommendation modes:
-  - **Safe pick** – low polarization, high average sentiment.
-  - **Debate night** – high polarization with sufficient review volume.
-- Explore movies in a **Streamlit** UI with basic visualizations.
-
-## Getting started
-
-### 1. Create and activate a virtual environment
+## Quick start (4 commands)
 
 ```bash
-cd polarScope
-python3 -m venv .venv
-source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
-```
-
-### 2. Install dependencies
-
-```bash
-pip install --upgrade pip
+# 1. Setup
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-```
 
-### 3. Prepare data
+# 2. Download dataset (see "Dataset setup" below)
 
-1. Download the IMDb 50K reviews dataset from Kaggle and save it as `data/raw/imdb_reviews_50k.csv`.
-2. Download or create a per‑movie review dataset (a CSV with at least `movie_title`, `review_text` columns) and save it as `data/raw/movie_reviews_by_title.csv`.
-
-The exact filenames and expected columns are documented in `src/data_loader.py`. If these CSV files are **not** present, the project will still run by falling back to a small built‑in demo dataset, which is useful for quick testing but not for final evaluation.
-
-### 4. Train the sentiment model and precompute metrics
-
-```bash
+# 3. Train model + compute metrics
 python train.py
-```
 
-This will:
-
-- Train the TF–IDF + logistic regression sentiment model.
-- Save the trained pipeline into `data/processed/sentiment_model.pkl`.
-- Compute per‑movie polarization metrics and store them in `data/processed/movie_polarization.parquet`.
-
-### 5. Run the Streamlit app
-
-```bash
+# 4. Launch the app
 streamlit run app.py
 ```
 
-Then open the printed local URL in your browser.
+## Dataset setup
+
+PolarScope uses the Kaggle dataset [IMDb Movie Reviews Grouped by Ratings](https://www.kaggle.com/datasets/mlopssss/imdb-movie-reviews-grouped-by-ratings). You only need to do this once.
+
+### Option A — Manual download (simplest, no Kaggle CLI needed)
+
+1. Go to **https://www.kaggle.com/datasets/mlopssss/imdb-movie-reviews-grouped-by-ratings**
+2. Click **Download** (you'll need a free Kaggle account).
+3. Unzip the downloaded file and place the CSV files into:
+
+```
+data/raw/kaggle/mlopssss__imdb-movie-reviews-grouped-by-ratings/
+├── reviews_rating_1.csv
+├── reviews_rating_2.csv
+├── ...
+└── reviews_rating_10.csv
+```
+
+That's it — `python train.py` will find them automatically.
+
+### Option B — Kaggle CLI (one command)
+
+If you have the [Kaggle CLI](https://www.kaggle.com/docs/api) configured (`~/.kaggle/kaggle.json`):
+
+```bash
+python scripts/download_kaggle_dataset.py
+```
+
+## Screenshots
+
+### Home — dashboard overview and score distribution
+
+![Home page — metrics and histogram](src/public/homePage1.png)
+
+![Home page — top polarizing vs consensus tables](src/public/homePage2.png)
+
+### Movie Explorer — per-movie deep dive
+
+![Movie Explorer — sentiment distribution and polarization radar](src/public/movieExplorer1.png)
+
+![Movie Explorer — NMF topics, controversial topics, and sample reviews](src/public/movieExplorer2.png)
+
+### Recommendations
+
+![Recommendations — safe pick and debate night modes](src/public/recommendation.png)
+
+### Metrics Comparison
+
+![Metrics Comparison — composite vs variance baseline scatter](src/public/metricComparison.png)
+
+### Case Studies
+
+![Case Studies — polarizing vs consensus with topic explanations](src/public/caseStudies.png)
+
+### Evaluation
+
+![Evaluation — Spearman correlations and bootstrap Kendall tau](src/public/evalution1.png)
+
+![Evaluation — Kendall tau distribution histogram](src/public/evalution2.png)
+
+## Features
+
+- **Sentiment analysis** — TF-IDF (unigram + bigram) pipeline with logistic regression trained on real IMDb data.
+- **Multi-metric polarization scoring** — bimodality coefficient, Shannon entropy, confidence-adjusted disagreement, and a weighted composite score.
+- **NMF topic extraction** — identifies discussion themes driving disagreement and highlights the most controversial topics per movie.
+- **Two recommendation modes**:
+  - **Safe pick** — crowd-pleasers with low polarization and high average sentiment.
+  - **Debate night** — conversation-starters with high polarization and sufficient review volume.
+- **Case studies** — side-by-side polarizing vs. consensus movies with topic explanations and review excerpts.
+- **Evaluation** — Spearman baseline comparisons and bootstrap ranking stability (Kendall tau).
+- **Title resolution** — IMDb `tt*` IDs are automatically resolved to human-readable movie titles.
+- **Interactive Streamlit UI** — six tabs (Home, Movie Explorer, Recommendations, Metrics Comparison, Case Studies, Evaluation).
+
+## Project structure
+
+```
+polarScope/
+├── app.py                  # Streamlit web application
+├── train.py                # CLI pipeline: data → model → metrics → evaluation
+├── requirements.txt
+├── setup.sh                # One-command environment bootstrap
+├── src/
+│   ├── data_loader.py      # Dataset loading, cleaning, weak-label generation
+│   ├── sentiment.py        # TF-IDF + LR sentiment pipeline
+│   ├── polarization.py     # Polarization metrics (bimodality, entropy, etc.)
+│   ├── recommender.py      # Safe-pick and debate-night ranking
+│   ├── topics.py           # NMF topic extraction and controversy scoring
+│   ├── evaluation.py       # Bootstrap stability, baseline correlations, case studies
+│   └── title_resolver.py   # IMDb ID → movie title resolution + caching
+├── tests/                  # pytest unit tests for every module
+├── scripts/
+│   └── download_kaggle_dataset.py
+└── docs/
+    └── progress_report_1.md / .pdf
+```
+
+## What `python train.py` produces
+
+| Artifact | Path |
+|---|---|
+| Trained sentiment model | `data/processed/sentiment_model.pkl` |
+| Per-movie polarization metrics | `data/processed/movie_polarization.parquet` |
+| IMDb title cache | `data/processed/title_cache.json` |
+| Case studies with topics | `data/processed/movie_case_studies.json` |
+| Evaluation results | `data/processed/evaluation_results.json` |
+
+## Running tests
+
+```bash
+pytest -q
+```
 
 ## Development notes
 
-- Code is organized under `src/` for reusable modules and `app.py` / `train.py` for entry points.
-- Heavy artifacts (raw data, processed data, models) are ignored by git via `.gitignore`.
-- Keep experiments in `notebooks/` and move any production‑ready logic into `src/`.
-
+- Reusable logic lives in `src/`; entry points are `app.py` and `train.py`.
+- Heavy artifacts (raw data, processed data, models) are excluded from version control via `.gitignore`.
+- Experimental notebooks can go in `notebooks/`; move production-ready code into `src/`.
