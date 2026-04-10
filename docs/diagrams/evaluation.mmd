@@ -1,0 +1,21 @@
+flowchart TD
+    subgraph baseline [Baseline Comparisons]
+        comp["Composite Score"]
+        var["Variance Baseline"]
+        mean["Mean Sentiment"]
+        spear["Spearman Correlation"]
+        comp & var --> spear
+        comp & mean --> spear
+    end
+
+    subgraph bootstrap [Bootstrap Stability]
+        orig["Original Rankings"]
+        resample["Resample Reviews\n(with replacement)"]
+        recompute["Recompute Metrics\n& Rankings"]
+        kt["Kendall Tau"]
+        ci["95% Confidence\nInterval"]
+        orig --> resample --> recompute --> kt --> ci
+    end
+
+    spear --> results["Evaluation\nResults"]
+    ci --> results

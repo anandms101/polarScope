@@ -76,9 +76,9 @@ python scripts/download_kaggle_dataset.py
 
 ### Evaluation
 
-![Evaluation — Spearman correlations and bootstrap Kendall tau](src/public/evalution1.png)
+![Evaluation — Spearman correlations and bootstrap Kendall tau](src/public/evaluation1.png)
 
-![Evaluation — Kendall tau distribution histogram](src/public/evalution2.png)
+![Evaluation — Kendall tau distribution histogram](src/public/evaluation2.png)
 
 ## Features
 
@@ -132,6 +132,34 @@ polarScope/
 ```bash
 pytest -q
 ```
+
+## Reproducibility (for graders)
+
+**Tested with**: Python 3.11+ on macOS and Ubuntu.
+
+```bash
+# Full reproducible run from a clean clone:
+git clone https://github.com/anandms101/polarScope.git && cd polarScope
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+# Place the Kaggle dataset (see "Dataset setup" above), then:
+python train.py          # ~2 min — trains model, computes metrics, writes artifacts
+streamlit run app.py     # opens the dashboard at http://localhost:8501
+
+# Run the test suite:
+pytest -q
+```
+
+If you also have the **IMDb 50K labeled** CSV (`data/raw/imdb_reviews_50k.csv`), `train.py` will use explicit labels instead of weak labels derived from ratings. Otherwise the weak-label path is used automatically and results remain comparable.
+
+## Authors
+
+- Anand Mohan Singh
+- Trisha Ambati
+- Sampath Pranay Beela
+
+Northeastern University — CS 5100 Foundations of AI, Spring 2026.
 
 ## Development notes
 

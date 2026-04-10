@@ -1,0 +1,33 @@
+flowchart LR
+    subgraph data [Data Ingestion]
+        raw["Kaggle IMDb Reviews\n(10 CSVs, ratings 1-10)"]
+        clean["HTML Stripping\n& Normalization"]
+        raw --> clean
+    end
+
+    subgraph sentiment [Sentiment Classification]
+        tfidf["TF-IDF Vectorizer\n(unigram + bigram, 10K)"]
+        lr["Logistic Regression"]
+        proba["P(positive)\nper review"]
+        clean --> tfidf --> lr --> proba
+    end
+
+    subgraph metrics [Polarization Scoring]
+        bc["Bimodality\nCoefficient"]
+        ent["Shannon\nEntropy"]
+        cad["Confidence-Adj\nDisagreement"]
+        comp["Weighted\nComposite Score"]
+        proba --> bc & ent & cad --> comp
+    end
+
+    subgraph topics [Topic Extraction]
+        nmf["NMF\n(5 topics)"]
+        contro["Controversy\nScoring"]
+        proba --> nmf --> contro
+    end
+
+    subgraph output [Interactive Dashboard]
+        ui["Streamlit UI\n(6 tabs)"]
+        comp --> ui
+        contro --> ui
+    end
