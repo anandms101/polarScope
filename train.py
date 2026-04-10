@@ -102,7 +102,7 @@ def main() -> None:
     all_ids = set(movie_reviews.keys())
     title_map = build_title_map(all_ids)
 
-    df = compute_all_metrics(movie_reviews, sentiment_model=model, min_reviews=3)
+    df = compute_all_metrics(movie_reviews, sentiment_model=model, min_reviews=5)
     if df.empty:
         raise RuntimeError("No movies available for metrics computation (too few reviews?).")
 

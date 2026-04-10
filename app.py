@@ -53,7 +53,7 @@ def main() -> None:
         max_movies = st.slider("Max movies (subsample)", 50, 2000, 800, 50)
         max_reviews_per_movie = st.slider("Max reviews per movie", 20, 400, 200, 20)
         st.divider()
-        st.caption("Data: IMDb reviews grouped by ratings (Kaggle). Run `python train.py` after changing settings.")
+        st.caption("Data: IMDb reviews grouped by ratings (Kaggle). Run `python train.py` to retrain the model and recompute metrics.")
 
     try:
         kaggle_df = load_kaggle_grouped_by_ratings(
@@ -82,13 +82,24 @@ def main() -> None:
         st.stop()
 
     df = None
+    using_cached = False
     if METRICS_PATH.exists():
         try:
             df = pd.read_parquet(METRICS_PATH)
+            df = df[df["movie"].isin(movie_reviews)]
+            using_cached = True
         except Exception:
             df = None
-    if df is None:
-        df = compute_all_metrics(movie_reviews, sentiment_model=model, min_reviews=min_reviews)
+    if df is None or df.empty:
+        with st.spinner("Computing polarization metrics (this may take a moment)..."):
+            df = compute_all_metrics(movie_reviews, sentiment_model=model, min_reviews=min_reviews)
+        using_cached = False
+
+    with st.sidebar:
+        if using_cached:
+            st.info("Using precomputed metrics from `train.py`.")
+        else:
+            st.warning("Metrics computed live (no cached data). Run `python train.py` for faster startup.")
 
     if df.empty:
         st.warning("No movies passed the minimum review threshold.")
@@ -139,7 +150,15 @@ def main() -> None:
     # ── Movie Explorer ───────────────────────────────────────────────────────
     with tab_explorer:
         sorted_titles = sorted(df["title"].tolist())
-        selected_title = st.selectbox("Search for a movie", options=sorted_titles, index=0)
+        search_query = st.text_input("Search for a movie", placeholder="Start typing a title...")
+        if search_query:
+            filtered = [t for t in sorted_titles if search_query.lower() in t.lower()]
+        else:
+            filtered = sorted_titles
+        if not filtered:
+            st.warning("No movies match your search.")
+            st.stop()
+        selected_title = st.selectbox("Select a movie", options=filtered, index=0)
         row = df[df["title"] == selected_title].iloc[0]
         movie = row["movie"]
 
@@ -183,8 +202,9 @@ def main() -> None:
                 )
                 st.plotly_chart(hist_fig, width="stretch")
 
-            topics = extract_topics(reviews, preds.labels.tolist(), n_topics=5)
-            controversial = get_controversial_topics(topics, top_n=3)
+            with st.spinner("Extracting NMF topics..."):
+                topics = extract_topics(reviews, preds.labels.tolist(), n_topics=5)
+                controversial = get_controversial_topics(topics, top_n=3)
 
             st.subheader("Topic explanations (NMF)")
             if not topics:
@@ -254,7 +274,8 @@ def main() -> None:
         st.markdown("Side-by-side comparison of the most polarizing and most consensus movies, "
                      "with topic-level explanations and representative review excerpts.")
         cs_n = st.slider("Case studies per group", 2, 8, 4, 1)
-        case = generate_case_studies(df, movie_reviews, sentiment_model=model, n=cs_n, n_topics=5)
+        with st.spinner("Generating case studies with topic explanations..."):
+            case = generate_case_studies(df, movie_reviews, sentiment_model=model, n=cs_n, n_topics=5)
 
         def _render_case(item: dict) -> None:
             title = title_cache.get(item["movie"], item["movie"])
@@ -313,9 +334,10 @@ def main() -> None:
         top_eval_movies = df.sort_values("num_reviews", ascending=False).head(120)["movie"].tolist()
         eval_reviews = {m: movie_reviews[m] for m in top_eval_movies if m in movie_reviews}
         try:
-            boot = bootstrap_ranking_stability(
-                eval_reviews, sentiment_model=model, n_iterations=n_boot, min_reviews=min_reviews
-            )
+            with st.spinner(f"Running {n_boot} bootstrap iterations..."):
+                boot = bootstrap_ranking_stability(
+                    eval_reviews, sentiment_model=model, n_iterations=n_boot, min_reviews=min_reviews
+                )
             tau_mean = boot["kendall_tau_mean"]
             ci = boot["kendall_tau_ci95"]
             st.metric("Mean Kendall tau", f"{tau_mean:.3f}", delta=f"CI95: [{ci[0]:.3f}, {ci[1]:.3f}]")
